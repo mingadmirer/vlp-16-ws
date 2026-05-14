@@ -1,195 +1,128 @@
-# FAST-LIVO2 ROS2 HUMBLE
+# FAST-LIVO2
 
-## FAST-LIVO2: Fast, Direct LiDAR-Inertial-Visual Odometry
+FAST-LIVO2: Fast, Direct LiDAR-Inertial-Visual Odometry。
 
-Thanks to hku mars lab chunran zheng for the open source excellent work
+本仓库是 FAST-LIVO2 的修改版，适配 VLP-16 + DM IMU + Astra 相机。
 
-### 📢 News
+原仓库：[hku-mars/FAST-LIVO2](https://github.com/hku-mars/FAST-LIVO2)
 
-- 🔓 **2025-01-23**: Code released!  
-- 🎉 **2024-10-01**: Accepted by **T-RO '24**!  
-- 🚀 **2024-07-02**: Conditionally accepted.
+## 架构
 
-### 📬 Contact
+C++ ROS2 包，核心源文件：
 
-For further inquiries or assistance, please contact [zhengcr@connect.hku.hk](mailto:zhengcr@connect.hku.hk).
+| 文件               | 职责                            |
+|--------------------|---------------------------------|
+| `LIVMapper.cpp`    | 主节点，融合 LiDAR/视觉/IMU 数据 |
+| `IMU_Processing.cpp` | IMU 初始化（重力估计）、IMU 传播 |
+| `voxel_map.cpp`    | 体素地图 ICP 匹配               |
+| `vio.cpp`          | 视觉惯性里程计                  |
+| `preprocess.cpp`   | LiDAR 点云预处理                |
+| `frame.cpp`        | 帧管理                         |
+| `main.cpp`         | 入口                           |
 
-## 1. Introduction
+## 模式
 
-FAST-LIVO2 is an efficient and accurate LiDAR-inertial-visual fusion localization and mapping system, demonstrating significant potential for real-time 3D reconstruction and onboard robotic localization in severely degraded environments.
+- **LIVO**（默认）：LiDAR + 视觉 + IMU 融合
+- **LIO**（纯 LiDAR-IMU）：可通过关闭视觉（`img_en: 0`）降级
 
-**Developer**: [Chunran Zheng 郑纯然](https://github.com/xuankuzcr)
+## 发布话题
 
-<div align="center">
-    <img src="pics/Framework.png" width = 100% >
-</div>
+| 话题                                 | 类型                              |
+|--------------------------------------|-----------------------------------|
+| `/Odometry`                          | `nav_msgs/Odometry`               |
+| `/path`                              | `nav_msgs/Path`                   |
+| `/cloud_registered`                  | `sensor_msgs/PointCloud2`         |
+| `/cloud_effect`                      | `sensor_msgs/PointCloud2`         |
+| TF `camera_init` → `aft_mapped`      | `tf2_msgs/TFMessage`              |
 
-### 1.1 Related video
+## 参数 (`config/vlp16_astra.yaml`)
 
-Our accompanying video is now available on [**Bilibili**](https://www.bilibili.com/video/BV1Ezxge7EEi) and [**YouTube**](https://youtu.be/6dF2DzgbtlY).
+### common
 
-### 1.2 Related paper
+| 参数             | 值                      | 说明               |
+|------------------|-------------------------|-------------------|
+| `img_topic`      | `/camera/color/image_raw` | 图像话题          |
+| `lid_topic`      | `/velodyne_points`        | 雷达点云话题      |
+| `imu_topic`      | `/imu/data`               | IMU 话题          |
+| `img_en` / `lidar_en` | `1` / `1`            | 启用视觉/激光     |
 
-[FAST-LIVO2: Fast, Direct LiDAR-Inertial-Visual Odometry](https://arxiv.org/pdf/2408.14035)  
+### imu
 
-[FAST-LIVO2 on Resource-Constrained Platforms](https://arxiv.org/pdf/2501.13876)  
+| 参数             | 默认值 | 说明                        |
+|------------------|--------|-----------------------------|
+| `imu_int_frame`  | `500`  | IMU 初始化帧数（越大重力估计越稳） |
+| `acc_cov`        | `0.5`  | 加速度协方差（越小越信任 IMU）    |
+| `gyr_cov`        | `0.3`  | 陀螺协方差                      |
+| `b_acc_cov`      | `0.0001` | 加速度偏置随机游走             |
+| `b_gyr_cov`      | `0.0001` | 陀螺偏置随机游走               |
 
-[FAST-LIVO: Fast and Tightly-coupled Sparse-Direct LiDAR-Inertial-Visual Odometry](https://arxiv.org/pdf/2203.00893)
+### vio
 
-[FAST-Calib: LiDAR-Camera Extrinsic Calibration in One Second](https://www.arxiv.org/pdf/2507.17210)
+| 参数                | 默认值 | 说明            |
+|---------------------|--------|----------------|
+| `max_iterations`    | `5`    | 视觉优化迭代数  |
+| `img_point_cov`     | `100`  | 图像点协方差    |
+| `patch_size`        | `8`    | 图像 patch 大小 |
+| `normal_en`         | `true` | 启用法线约束    |
 
-### 1.3 Our hard-synchronized equipment
+### lio
 
-We open-source our handheld device, including CAD files, synchronization scheme, STM32 source code, wiring instructions, and sensor ROS driver. Access these resources at this repository: [**LIV_handhold**](https://github.com/xuankuzcr/LIV_handhold).
+| 参数                | 默认值 | 说明            |
+|---------------------|--------|----------------|
+| `max_iterations`    | `5`    | LIO 优化迭代数  |
+| `dept_err`          | `0.02` | 深度误差阈值    |
+| `beam_err`          | `0.05` | 光束误差阈值    |
+| `voxel_size`        | `0.5`  | 体素大小        |
 
-### 1.4 Our associate dataset: FAST-LIVO2-Dataset
-Our associate dataset [**FAST-LIVO2-Dataset**](https://connecthkuhk-my.sharepoint.com/:f:/g/personal/zhengcr_connect_hku_hk/ErdFNQtjMxZOorYKDTtK4ugBkogXfq1OfDm90GECouuIQA?e=KngY9Z) used for evaluation is also available online.
+### extrin_calib
 
-### 1.5 Our LiDAR-camera calibration method
-The [**FAST-Calib**](https://github.com/hku-mars/FAST-Calib) toolkit is recommended. Its output extrinsic parameters can be directly filled into the YAML file. 
+| 参数          | 说明                         |
+|---------------|------------------------------|
+| `extrinsic_T` | LiDAR→IMU 平移 (m)            |
+| `extrinsic_R` | LiDAR→IMU 旋转（在线优化，初始 identity） |
+| `Rcl`         | LiDAR→Camera 旋转（标定值）    |
+| `Pcl`         | LiDAR→Camera 平移（标定值, m）  |
 
-### MARS-LVIG dataset
-[**MARS-LVIG dataset**](https://mars.hku.hk/dataset.html)：A multi-sensor aerial robots SLAM dataset for LiDAR-visual-inertial-GNSS fusion
+### 相机内参 (`config/camera_astra.yaml`)
 
-## 2. Prerequisited
+| 参数      | 值              | 说明       |
+|-----------|----------------|------------|
+| `cam_fx`  | 596.278        | 焦距 x     |
+| `cam_fy`  | 598.538        | 焦距 y     |
+| `cam_cx`  | 303.465        | 主点 x     |
+| `cam_cy`  | 245.185        | 主点 y     |
+| D0~D4     | 畸变系数       | 径向/切向  |
 
-### 2.1 Ubuntu and ROS
-
-Ubuntu 22.04.  [ROS Installation](http://wiki.ros.org/ROS/Installation).
-
-### 2.2 PCL && Eigen && OpenCV
-
-PCL>=1.8, Follow [PCL Installation](https://pointclouds.org/). 
-
-Eigen>=3.3.4, Follow [Eigen Installation](https://eigen.tuxfamily.org/index.php?title=Main_Page).
-
-OpenCV>=4.2, Follow [Opencv Installation](http://opencv.org/).
-
-### 2.3 Sophus
-
-#### Binary installation
-```bash
-sudo apt install ros-$ROS_DISTRO-sophus
-```
-
-#### Building from source
-Sophus Installation for the non-templated/double-only version.
-
-```bash
-git clone https://github.com/strasdat/Sophus.git
-cd Sophus
-git checkout a621ff
-mkdir build && cd build && cmake ..
-make
-sudo make install
-```
-
-if build fails due to `so2.cpp:32:26: error: lvalue required as left operand of assignment`, modify the code as follows:
-
-**so2.cpp**
-```diff
-namespace Sophus
-{
-
-SO2::SO2()
-{
--  unit_complex_.real() = 1.;
--  unit_complex_.imag() = 0.;
-+  unit_complex_.real(1.);
-+  unit_complex_.imag(0.);
-}
-```
-
-### 2.4 Vikit
-
-Vikit contains camera models, some math and interpolation functions that we need. Vikit is a catkin project, therefore, download it into your catkin workspace source folder.
-
-For well-known reasons, ROS2 does not have a direct global parameter server and a simple method to obtain the corresponding parameters. For details, please refer to https://discourse.ros.org/t/ros2-global-parameter-server-status/10114/11. I use a special way to get camera parameters in Vikit. While the method I've provided so far is quite simple and not perfect, it meets my needs. More contributions to improve `rpg_vikit` are hoped.
+## 使用方式
 
 ```bash
-# Different from the one used in fast-livo1
-cd fast_ws/src
-git clone https://github.com/Robotic-Developer-Road/rpg_vikit.git 
+# 单独启动（不含传感器驱动，需先启动各驱动节点）
+ros2 launch fast_livo mapping_vlp16.launch.py
+
+# 完整建图（推荐，通过 vlp16_mapping 一键启动）
+ros2 launch vlp16_mapping mapping.launch.py
 ```
 
-Thanks to the following repositories for the code reference:
+## 输入依赖
 
-- [uzh-rpg/rpg_vikit](https://github.com/uzh-rpg/rpg_vikit)
-- [xuankuzcr/rpg_vikit](https://github.com/xuankuzcr/rpg_vikit)
-- [uavfly/vikit](https://github.com/uavfly/vikit)
+| 话题                          | 来源                                      |
+|-------------------------------|-------------------------------------------|
+| `/velodyne_points`            | [velodyne_pointcloud](../velodyne/README.md) |
+| `/imu/data`                   | [dm_imu](../dm_imu/README.md)             |
+| `/camera/color/image_raw`     | [astra_camera](../ros2_astra_camera/README.md) |
 
-### 2.5 **livox_ros_driver2**
+## 输出文件
 
-Follow [livox_ros_driver2 Installation](https://github.com/Livox-SDK/livox_ros_driver2).
+- **PCD 点云地图**：`pcd_save_en: true` 时保存，默认在工作目录
+- **位姿轨迹**（TUM 格式）：`pose_output_en: true`
 
-why not use `livox_ros_driver`? Because it is not compatible with ROS2 directly. actually i am not think there s any difference between [livox ros driver](https://github.com/Livox-SDK/livox_ros_driver.git) and [livox ros driver2](https://github.com/Livox-SDK/livox_ros_driver2.git) 's `CustomMsg`, the latter 's ros2 version is sufficient.
+## 关键配置注意事项
 
-## 3. Build
+1. **修改 yaml 后需同步到 install 目录**：launch 文件从 `install/fast_livo/share/fast_livo/config/` 加载配置，修改 `src/FAST-LIVO2/config/` 后需 `colcon build --packages-select fast_livo` 或手动 `cp`
+2. **IMU 重力估计**：`imu_int_frame` 控制初始化时累积的 IMU 帧数，对 DM IMU（其读数会漂移）需要设得较大（300~500）
 
-Clone the repository and colcon build:
+## 联动
 
-```
-cd ~/fast_ws/src
-git clone https://github.com/Robotic-Developer-Road/FAST-LIVO2.git
-cd ../
-colcon build --symlink-install --continue-on-error
-source ~/fast_ws/install/setup.bash
-```
-
-## 4. Run our examples
-
-Download our collected rosbag files via OneDrive ([**FAST-LIVO2-Dataset**](https://connecthkuhk-my.sharepoint.com/:f:/g/personal/zhengcr_connect_hku_hk/ErdFNQtjMxZOorYKDTtK4ugBkogXfq1OfDm90GECouuIQA?e=KngY9Z)). 
-
-### convert rosbag
-
-convert ROS1 rosbag to ROS2 rosbag
-```bash
-pip install rosbags
-rosbags-convert --src Retail_Street.bag --dst Retail_Street
-```
-- [gitlab rosbags](https://gitlab.com/ternaris/rosbags)
-- [pypi rosbags](https://pypi.org/project/rosbags/)
-
-### change the msg type on rosbag
-
-Such as dataset `Retail_Street.db3`, because we use `livox_ros2_driver2`'s `CustomMsg`, we need to change the msg type in the rosbag file. 
-1. use `rosbags-convert` to convert rosbag from ROS1 to ROS2.
-2. change the msg type of msg type in **metadata.yaml** as follows:
-
-**metadata.yaml**
-```diff
-rosbag2_bagfile_information:
-  compression_format: ''
-  compression_mode: ''
-  custom_data: {}
-  duration:
-    nanoseconds: 135470252209
-  files:
-  - duration:
-      nanoseconds: 135470252209
-    message_count: 30157
-    path: Retail_Street.db3
-    ..............
-    topic_metadata:
-      name: /livox/lidar
-      offered_qos_profiles: ''
-      serialization_format: cdr
--     type: livox_ros_driver/msg/CustomMsg
-+     type: livox_ros_driver2/msg/CustomMsg
-      type_description_hash: RIHS01_94041b4794f52c1d81def2989107fc898a62dacb7a39d5dbe80d4b55e538bf6d
-    ...............
-.....
-```
-
-### Run the demo
-
-Do not forget to `source` your ROS2 workspace before running the following command.
-
-```bash
-ros2 launch fast_livo mapping_aviz.launch.py use_rviz:=True
-ros2 bag play -p Retail_Street  # space bar controls play/pause
-```
-
-## 5. License
-
-The source code of this package is released under the [**GPLv2**](http://www.gnu.org/licenses/) license. For commercial use, please contact me at <zhengcr@connect.hku.hk> and Prof. Fu Zhang at <fuzhang@hku.hk> to discuss an alternative license.
+- [vlp16_mapping](../vlp16_mapping/README.md) 整合所有传感器驱动一键启动
+- [rpg_vikit](../rpg_vikit/README.md) 提供相机参数获取基础库
+- [dm_imu](../dm_imu/README.md) IMU 驱动需先启动

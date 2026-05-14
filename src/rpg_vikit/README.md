@@ -1,69 +1,40 @@
-# Vikit: Vision-Kit for Robotics
+# rpg_vikit
 
-Vikit is a versatile collection of C++ tools and utilities designed for computer vision and robotics projects. This version has been modernized for the ROS2 ecosystem (specifically tested on Jazzy and Humble) with a focus on high-performance parameter handling and cross-node compatibility.
+Vikit: Vision-Kit for Robotics。计算机视觉与机器人通用工具库，适配 ROS2。
 
----
+原仓库：[uzh-rpg/rpg_vikit](https://github.com/uzh-rpg/rpg_vikit)
 
-## 🔒 Disclaimer & Acknowledgments
+## 子模块
 
-### Usage Policy
-This software is provided for **educational and research purposes only**. It shall **not be used for any commercial purposes**.
+| 模块            | 功能                                         |
+|-----------------|----------------------------------------------|
+| `vikit_common`  | 纯 C++ 通用工具（数学、文件 IO、计时器等）      |
+| `vikit_ros`     | ROS2 集成（参数获取、话题辅助等）              |
+| `vikit_py`      | Python 工具包装                               |
 
-### Acknowledgments
-We extend our deepest gratitude to the original developers and contributors of the projects that served as the foundation for this kit:
-*   [uzh-rpg/rpg_vikit](https://github.com/uzh-rpg/rpg_vikit)
-*   [xuankuzcr/rpg_vikit](https://github.com/xuankuzcr/rpg_vikit)
-*   [uavfly/vikit](https://github.com/uavfly/vikit)
+## 关键特性（ROS2）
 
----
+- `params_helper.hpp`：多层级参数获取策略
+  1. 直接节点参数访问（高速）
+  2. `SyncParametersClient`：跨节点参数获取（通过 service 调用 `parameter_blackboard`）
+  3. CLI 回退：`ros2 param get`
+- 支持 Sophus（李群库），版本要求 1.22.10
 
-## 🚀 Key Improvements in ROS2
-
-### Optimized Parameter Fetching Architecture
-One of the most significant challenges in migrating from ROS1 to ROS2 is the removal of the global Parameter Server. In ROS2, parameters are local to each node. Vikit addresses this through a multi-tiered fetching strategy in `params_helper.hpp`:
-
-1.  **Native Node Access**: Direct, high-speed access to parameters owned by the current node handle.
-2.  **`SyncParametersClient` (High Performance)**: For cross-node parameter access (e.g., retrieving camera intrinsics from a central `parameter_blackboard`). This utilizes optimized ROS2 Service calls to achieve microsecond-level latency, avoiding the overhead of CLI tools.
-3.  **Command-Line Fallback**: A robust fallback mechanism using `popen` to interface with the ROS2 CLI (`ros2 param get`), ensuring parameter retrieval even in complex edge cases where service clients might be restricted.
-
-This architecture ensures that vision components can load dozens of camera parameters nearly instantaneously, a critical requirement for real-time SLAM and VIO systems.
-
----
-
-## 🛠 Installation Guide
-
-### Prerequisites: Sophus
-Vikit relies on Sophus for Lie groups. It is recommended to use version `1.22.10`.
+## 依赖安装
 
 ```bash
+# Sophus
 git clone https://github.com/strasdat/Sophus.git -b 1.22.10
 cd Sophus && mkdir build && cd build
-cmake .. && make -j$(nproc)
-sudo make install
+cmake .. && make -j$(nproc) && sudo make install
+
+# vikit_common（全局安装）
+cd vikit_common && mkdir build && cd build
+cmake .. && make -j$(nproc) && sudo make install
 ```
 
-### Building `vikit_common`
-`vikit_common` is a pure CMake package and can be installed globally.
+## 在工程中的角色
 
-```bash
-cd vikit_common
-mkdir build && cd build
-cmake .. && make -j$(nproc)
-sudo make install
-```
+本包被 [FAST-LIVO2](../FAST-LIVO2/README.md) 依赖。
 
-### Building `vikit_ros`
-`vikit_ros` is integrated into the ROS2 workspace and should be built using `colcon`.
-
-```bash
-# Move vikit_ros to your workspace src directory
-cd ~/ros2_ws
-colcon build --symlink-install --packages-select vikit_ros
-```
-
----
-
-## 📅 Maintenance Info
-*   **Last Update**: December 2025
-*   **Target Systems**: Ubuntu 22.04 (Humble) / 24.04 (Jazzy)
-*   **Compiler**: C++17 compliant (GCC 9+)
+FAST-LIVO2 通过 `vikit_ros` 的 `params_helper.hpp` 从 `parameter_blackboard` 节点获取相机内参（camera_astra.yaml），避免硬编码相机参数。

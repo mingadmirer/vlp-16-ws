@@ -9,8 +9,8 @@
       ros_driver_bug_fix: false
 
     extrin_calib:
-      extrinsic_T: [0.0, 0.0, 0.0]      # IMU->LiDAR translation (待标定)
-      extrinsic_R: [1.0, 0.0, 0.0,       # IMU->LiDAR rotation
+      extrinsic_T: [0.044513, -0.032213, -0.021689]  # LiDAR->IMU translation
+      extrinsic_R: [1.0, 0.0, 0.0,                   # LiDAR->IMU rotation (identity, online refine)
                     0.0, 1.0, 0.0,
                     0.0, 0.0, 1.0]
       Rcl: [-0.347614, -0.936959, 0.035667,    # LiDAR->Camera rotation (标定, RMSE=0.016m)
@@ -25,7 +25,7 @@
       exposure_time_init: 0.0
 
     preprocess:
-      point_filter_num: 1
+      point_filter_num: 2
       filter_size_surf: 0.5
       lidar_type: 2          # VELO16
       scan_line: 16
@@ -45,7 +45,7 @@
 
     imu:
       imu_en: true
-      imu_int_frame: 30
+      imu_int_frame: 500
       acc_cov: 0.5
       gyr_cov: 0.3
       b_acc_cov: 0.0001
@@ -82,7 +82,7 @@
       pose_output_en: true
 
     pcd_save:
-      pcd_save_en: false
+      pcd_save_en: true
       type: 0
       colmap_output_en: false
       filter_size_pcd: 0.15

@@ -190,9 +190,9 @@ class DmImuNode(Node):
             imu.angular_velocity.z = gyro[2] * math.pi / 180.0
             
             # 3. 加速度 (IMU 固件直接输出 m/s², 无需转换)
-            imu.linear_acceleration.x = acc[0] 
-            imu.linear_acceleration.y = acc[1] 
-            imu.linear_acceleration.z = acc[2] 
+            imu.linear_acceleration.x = acc[0]
+            imu.linear_acceleration.y = acc[1]
+            imu.linear_acceleration.z = acc[2]
 
             # 4. 协方差矩阵 (清零并赋予微小置信度，彻底抛弃 -1.0)
             for i in range(9):

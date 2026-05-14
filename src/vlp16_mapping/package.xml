@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>vlp16_mapping</name>
+  <version>0.0.1</version>
+  <description>Launch all nodes for VLP-16 + DM IMU mapping with FAST-LIVO2</description>
+  <maintainer email="user@todo.todo">user</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>fast_livo</exec_depend>
+  <exec_depend>velodyne_driver</exec_depend>
+  <exec_depend>velodyne_pointcloud</exec_depend>
+  <exec_depend>dm_imu</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
