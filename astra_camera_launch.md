@@ -53,6 +53,53 @@ ros2 launch astra_camera astra.launch.xml \
   uvc_camera_format:=mjpeg
 ```
 
+## 相机内参
+
+### 默认值（驱动输出，未标定）
+
+| 参数 | 值 |
+|---|---|
+| 模型 | Pinhole |
+| 分辨率 | 640×480 |
+| fx | 454.606628 |
+| fy | 454.606628 |
+| cx | 323.811493 |
+| cy | 241.962662 |
+| k1 | 0.0 |
+| k2 | 0.0 |
+| p1 | 0.0 |
+| p2 | 0.0 |
+| k3 | 0.0 |
+
+> fx == fy 且畸变全零，明显是未标定的通用默认值，不建议用于视觉 SLAM。
+
+### 标定值（OpenCV 棋盘格，2026-05-14）
+
+| 参数 | 值 |
+|---|---|
+| 模型 | Pinhole |
+| 分辨率 | 640×480 |
+| fx | 596.278151 |
+| fy | 598.538272 |
+| cx | 303.464712 |
+| cy | 245.184849 |
+| k1 (d0) | 0.222562 |
+| k2 (d1) | -0.729829 |
+| p1 (d2) | 0.008878 |
+| p2 (d3) | -0.025815 |
+| k3 (d4) | 0.761221 |
+
+- 标定方法：OpenCV `calibrateCamera`，8×6 内角点棋盘格，方格 25mm
+- 样本数：45 张（全部检测成功）
+- RMS 重投影误差：2.38 px
+
+```bash
+# 标定命令
+ros2 run camera_calibration cameracalibrator \
+  --size 8x6 --square 0.025 --no-service-check \
+  --ros-args -r image:=/camera/color/image_raw
+```
+
 ## 数据流对应硬件
 
 | 硬件 | PID | 协议 |

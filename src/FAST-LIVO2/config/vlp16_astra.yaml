@@ -13,10 +13,10 @@
       extrinsic_R: [1.0, 0.0, 0.0,       # IMU->LiDAR rotation
                     0.0, 1.0, 0.0,
                     0.0, 0.0, 1.0]
-      Rcl: [1.0, 0.0, 0.0,              # LiDAR->Camera rotation (待标定)
-            0.0, 1.0, 0.0,
-            0.0, 0.0, 1.0]
-      Pcl: [0.0, 0.0, 0.0]              # LiDAR->Camera translation (待标定)
+      Rcl: [-0.347614, -0.936959, 0.035667,    # LiDAR->Camera rotation (标定, RMSE=0.016m)
+             -0.091030, -0.004136, -0.995840,
+             0.933208, -0.349415, -0.083854]
+      Pcl: [-0.0745, 0.1370, 0.0434]             # LiDAR->Camera translation (标定)
 
     time_offset:
       lidar_time_offset: 0.0
